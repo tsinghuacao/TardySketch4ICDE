@@ -11,30 +11,30 @@ from Set_parameter import *
 
 
 class Node:
-    """双向链表节点类，存储节点的值、指向前后节点的指针以及额外的元数据"""
+    """Doubly linked list node class, storing the value of the node, pointers to previous and next nodes, and additional metadata."""
 
     def __init__(self, val):
-        self.val = val            # 节点的值
-        self.pre = None           # 前驱节点
-        self.next = None          # 后继节点
-        self.gap = 0              # 自定义字段，可以存储数据间的差距
-        self.src = 0              # 源标识符
+        self.val = val            # The value of the node
+        self.pre = None           # The previous node
+        self.next = None          # The next node
+        self.gap = 0              # Custom field, can store the gap between data
+        self.src = 0              # Source identifier
 
 
 class DoubleLinkedList:
-    """双向链表类，提供对节点的插入、删除、遍历等操作"""
+    """Doubly linked list class providing operations like insertion, deletion, and traversal."""
 
     def __init__(self):
-        """初始化双向链表，创建一个头节点"""
-        self.head = Node(0)        # 头节点
-        self.tail = self.head      # 尾节点，初始时与头节点相同
+        """Initialize the doubly linked list with a head node."""
+        self.head = Node(0)        # Head node
+        self.tail = self.head      # Tail node, initially the same as the head node
 
     def is_empty(self):
-        """检查链表是否为空"""
+        """Check if the list is empty."""
         return self.head.next is None
 
     def get_length(self):
-        """计算链表的长度"""
+        """Calculate the length of the list."""
         length = 0
         cur_node = self.head.next
         while cur_node:
@@ -43,7 +43,7 @@ class DoubleLinkedList:
         return length
 
     def add_last(self, node):
-        """在链表尾部添加节点"""
+        """Add a node at the end of the list."""
         if self.is_empty():
             self.head.next = node
             node.pre = self.head
@@ -56,11 +56,11 @@ class DoubleLinkedList:
             self.tail = node
 
     def shift_node(self, node):
-        """将节点移动到链表尾部"""
+        """Move the node to the tail of the list."""
         if node == self.tail:
-            return  # 如果节点已经是尾节点，跳过操作
+            return  # Skip if the node is already at the tail
         else:
-            # 更新节点前后节点的指针
+            # Update pointers of the previous and next nodes
             node.pre.next = node.next
             if node.next:
                 node.next.pre = node.pre
@@ -70,12 +70,12 @@ class DoubleLinkedList:
             self.tail = node
 
     def remove_old_node(self):
-        """删除链表头部节点"""
+        """Remove the head node of the list."""
         if self.is_empty():
-            print("删除失败，链表为空")
+            print("Failed to remove, the list is empty.")
             return False
         else:
-            # 删除头节点并更新指针
+            # Remove the head node and update the pointers
             first_node = self.head.next
             self.head.next = first_node.next
             if first_node.next:
@@ -85,11 +85,11 @@ class DoubleLinkedList:
             return True
 
     def traversal(self):
-        """遍历链表并返回所有节点的列表"""
+        """Traverse the list and return a list of all nodes."""
         nodes = []
         cur_node = self.head.next
         if self.is_empty():
-            print("链表为空！")
+            print("The list is empty!")
             return nodes
         while cur_node:
             nodes.append(cur_node)
@@ -98,29 +98,29 @@ class DoubleLinkedList:
 
 
 class CountMin:
-    """CountMin Sketch结构，用于近似频率估计"""
+    """CountMin Sketch structure, used for approximate frequency estimation."""
 
     def __init__(self, d, w):
         """
-        初始化CountMin结构
-        :param d: 哈希函数的数量
-        :param w: 每行哈希表的宽度
+        Initialize the CountMin structure.
+        :param d: Number of hash functions
+        :param w: Width of each hash table row
         """
-        self.d = d  # 哈希函数数量
-        self.w = w  # 哈希表宽度
-        self.CM = [[0] * w for _ in range(d)]  # 初始化一个d行w列的二维数组
+        self.d = d  # Number of hash functions
+        self.w = w  # Width of hash tables
+        self.CM = [[0] * w for _ in range(d)]  # Initialize a d x w 2D array
 
     def CM_update(self, pos):
-        """更新CountMin表，增加指定位置的频率"""
+        """Update the CountMin table by incrementing the frequency at the given position."""
         pos = str(pos)
         global bias
         for i in range(self.d):
-            # 使用xxhash生成哈希值并映射到表的范围内
+            # Use xxhash to generate a hash value and map it to the table range
             hash_value = xxhash.xxh64_intdigest(pos, seed=2024 + bias[i]) % self.w
             self.CM[i][hash_value] += 1
 
     def CM_decrease(self, pos):
-        """减少指定位置的频率"""
+        """Decrease the frequency at the specified position."""
         pos = str(pos)
         global bias
         D_val = []
@@ -131,7 +131,7 @@ class CountMin:
         return D_val
 
     def get_CM_value(self, pos):
-        """获取指定位置的频率估计值"""
+        """Get the frequency estimate at the given position."""
         pos = str(pos)
         global bias
         frequency = []
@@ -141,32 +141,32 @@ class CountMin:
         return frequency
 
 
-# 增强的功能和复杂性
+# Enhanced functionality and complexity
 class AdvancedCountMin(CountMin):
-    """扩展版CountMin Sketch结构，加入自定义的哈希策略和优化功能"""
+    """Extended CountMin Sketch structure, with custom hashing strategy and optimization features."""
 
     def __init__(self, d, w, hash_function=None):
         """
-        初始化扩展版CountMin结构，支持自定义哈希函数
-        :param d: 哈希函数数量
-        :param w: 每行哈希表的宽度
-        :param hash_function: 可选的自定义哈希函数
+        Initialize the extended CountMin structure with support for custom hash functions.
+        :param d: Number of hash functions
+        :param w: Width of hash tables
+        :param hash_function: Optional custom hash function
         """
         super().__init__(d, w)
         self.hash_function = hash_function if hash_function else xxhash.xxh64_intdigest
 
     def CM_update(self, pos, custom_seed=None):
-        """使用自定义哈希函数更新CountMin表"""
+        """Update the CountMin table using a custom hash function."""
         pos = str(pos)
         global bias
         seed = custom_seed if custom_seed else 2024
         for i in range(self.d):
-            # 使用自定义哈希函数生成哈希值
+            # Use the custom hash function to generate the hash value
             hash_value = self.hash_function(pos, seed=seed + bias[i]) % self.w
             self.CM[i][hash_value] += 1
 
     def CM_decrease(self, pos, custom_seed=None):
-        """使用自定义哈希函数减少频率"""
+        """Decrease the frequency using a custom hash function."""
         pos = str(pos)
         global bias
         D_val = []
@@ -178,7 +178,7 @@ class AdvancedCountMin(CountMin):
         return D_val
 
     def get_custom_hash_value(self, pos, custom_seed=None):
-        """获取自定义哈希函数下的频率估计值"""
+        """Get the frequency estimate using the custom hash function."""
         pos = str(pos)
         global bias
         frequency = []
@@ -187,5 +187,3 @@ class AdvancedCountMin(CountMin):
             hash_value = self.hash_function(pos, seed=seed + bias[i]) % self.w
             frequency.append(self.CM[i][hash_value])
         return frequency
-
-

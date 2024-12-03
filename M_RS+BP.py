@@ -15,50 +15,50 @@ from Component import *
 from Set_parameter import *
 
 class LinearCounting:
-    """线性计数算法，用于基数估计"""
+    """Linear Counting algorithm for cardinality estimation"""
 
     def __init__(self, m, win):
         """
-        初始化线性计数算法
-        :param m: 计数表大小
-        :param win: 窗口大小
+        Initialize the Linear Counting algorithm
+        :param m: Size of the counting table
+        :param win: Window size
         """
         self.m = m
         self.win = win
-        self.LC = []  # 计数表
+        self.LC = []  # Counting table
         self._initialize_lc()
 
     def _initialize_lc(self):
-        """初始化计数表"""
+        """Initialize the counting table"""
         self.LC = [Node(0) for _ in range(self.m)]
 
     def _get_index(self, dst):
-        """获取数据源dst的哈希索引"""
+        """Get hash index for the data source 'dst'"""
         res = xxhash.xxh64_intdigest(dst, seed=20240417)
         return res
 
     def get_estimation(self):
-        """基于线性计数公式估算基数"""
+        """Estimate the cardinality based on the linear counting formula"""
         res = -self.m * np.log((self.m - self.LC[0].val) / self.m)
         return res
 
     def _calculate_average_gap(self):
-        """计算LC表中所有节点的平均间隔"""
+        """Calculate the average gap between nodes in the LC table"""
         total_gap = sum(node.gap for node in self.LC)
         return total_gap / self.m
 
     def update(self, lru, CM, source, real_num):
-        """更新计数表，并根据窗口滑动调整"""
+        """Update the counting table and adjust based on the sliding window"""
         LC_estimates = []
         cnt = 0
         cnt_out = 0
         es_out = []
         for i in range(len(source)):
-            # 获取数据源的哈希索引并计算bit index
+            # Get the hash index for the data source and calculate the bit index
             hash_val = self._get_index(source[i])
             bit_index = hash_val % self.m
 
-            # LC表和LRU更新
+            # Update the LC table and LRU
             bit_val = self.LC[bit_index].val
             CM.CM_update(bit_index)
             if bit_val == 0:
@@ -70,7 +70,7 @@ class LinearCounting:
                 self.LC[bit_index].gap = 0
                 lru.shift_node(self.LC[bit_index])
 
-            # 窗口滑动机制
+            # Window sliding mechanism
             if cnt >= self.win:
                 first_node_index = self.LC.index(lru.head.next)
                 e_mode = lru.head.gap
@@ -92,11 +92,11 @@ class LinearCounting:
                     CM.CM_decrease(hpos)
                     lru.head.gap -= 1
 
-                # 打印校验结果
+                # Print verification results
                 if (cnt - self.win) % print_LC_gap == 0:
                     estimate_num = self.get_estimation()
                     LC_estimates.append(estimate_num)
-                    print(f"当前处理至第 {cnt}, {cnt_out} 项，真实基数是 {real_num[cnt_out]}，估计基数是 {estimate_num}")
+                    print(f"Currently processing {cnt}, {cnt_out} items, real cardinality is {real_num[cnt_out]}, estimated cardinality is {estimate_num}")
                     es_out.append([real_num[cnt_out], estimate_num])
 
                 if cnt_out >= 11:
@@ -108,11 +108,11 @@ class LinearCounting:
 
 
 class DataPreparation:
-    """数据准备类，负责从文件中加载数据"""
+    """Data preparation class responsible for loading data from files"""
 
     @staticmethod
     def load_data(file_csv, file_real):
-        """加载CSV文件并提取源数据和真实基数"""
+        """Load CSV files and extract source data and real cardinality"""
         df_source = pd.read_csv(file_csv, usecols=['src'])
         source = df_source['src']
         df_real = pd.read_csv(file_real, usecols=['real-cardinality'])
@@ -121,37 +121,37 @@ class DataPreparation:
 
 
 class FileSaver:
-    """文件保存类，负责保存估计结果"""
+    """File saving class responsible for saving estimation results"""
 
     @staticmethod
     def save_results(results, file_realnum):
-        """保存估计结果到文件"""
+        """Save the estimation results to a file"""
         data = {'LC_estimate': results}
         df = pd.DataFrame(data)
         save_path = file_realnum[:-12]
         df.to_csv(save_path + '_LC_estimate.csv')
-        print("估计结果保存完毕")
+        print("Estimation results have been saved successfully")
 
 
 def main():
-    """主函数，控制整个数据处理流程"""
+    """Main function to control the entire data processing flow"""
     global CM_para_d, CM_para_w, LC_para_m, where_datastream, where_stream_realcar, window_size
 
-    # 初始化LRU和CountMin辅助结构
+    # Initialize LRU and CountMin auxiliary structures
     lru = DoubleLinkedList()
     CM = CountMin(d=CM_para_d, w=CM_para_w)
     CM.generate_countmin()
 
-    # 数据准备
+    # Data preparation
     file_path = where_datastream
     file_realnum = where_stream_realcar
     source, real_num = DataPreparation.load_data(file_csv=file_path, file_real=file_realnum)
 
-    # 初始化线性计数算法
+    # Initialize the Linear Counting algorithm
     LC = LinearCounting(m=LC_para_m, win=window_size)
     LC_estimates = LC.update(lru=lru, CM=CM, source=source, real_num=real_num)
 
-    # 保存估计结果
+    # Save estimation results
     FileSaver.save_results(LC_estimates, file_realnum)
 
 

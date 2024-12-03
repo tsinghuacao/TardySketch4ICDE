@@ -4,103 +4,103 @@ import os
 import logging
 from multiprocessing import Pool, Manager
 
-# 配置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler()])
 
 
 class CardinalityEstimator:
-    """基数估计器类，负责分块处理和并行计算基数"""
+    """Cardinality Estimator class responsible for chunk processing and parallel cardinality computation"""
 
     def __init__(self, win, step_size):
         """
-        初始化基数估计器
-        :param win: 窗口大小
-        :param step_size: 步长
+        Initialize the cardinality estimator
+        :param win: Window size
+        :param step_size: Step size
         """
         self.win = win
         self.step_size = step_size
-        logging.info(f"初始化基数估计器，窗口大小：{win}，步长：{step_size}")
+        logging.info(f"Initialized cardinality estimator with window size: {win} and step size: {step_size}")
 
     def get_real_num_parallel(self, args):
-        """并行处理单个数据块，计算唯一元素个数"""
+        """Parallel processing for a single chunk, computing the number of unique elements"""
         chunk, win, shared_space = args
         unique_elements = set(chunk)
         return len(unique_elements)
 
     def split_dataframe(self, df):
-        """将数据框分割为多个滑动窗口"""
+        """Split the dataframe into multiple sliding windows"""
         rounds = int((len(df) - self.win) / self.step_size)
         chunks = []
         for i in range(rounds + 1):
             start_point = i * self.step_size
             end_point = self.win + i * self.step_size
             chunks.append(df.iloc[start_point:end_point])
-        logging.info(f"数据被分割为 {len(chunks)} 个块")
+        logging.info(f"Data split into {len(chunks)} chunks")
         return chunks
 
     def parallel_processing(self, chunks):
-        """使用多进程并行计算所有块的基数"""
+        """Use multiprocessing to parallelize the computation of cardinality for all chunks"""
         with Manager() as manager:
             shared_space = manager.list([0] * self.win)
             args_list = [(chunk, self.win, shared_space) for chunk in chunks]
 
             with Pool() as pool:
-                logging.info(f"开始并行处理 {len(chunks)} 个数据块")
+                logging.info(f"Starting parallel processing of {len(chunks)} chunks")
                 results = pool.map(self.get_real_num_parallel, args_list)
 
         return results
 
     def save_results(self, results, file_path):
-        """保存统计结果到文件"""
+        """Save the statistics results to a file"""
         statistics = {'real-cardinality': results}
         df = pd.DataFrame(statistics)
         output_file = file_path[:-4] + f"-win-{self.win}-step_size-{self.step_size}_real_num.csv"
         df.to_csv(output_file, index=False)
-        logging.info(f"统计结果保存到文件：{output_file}")
+        logging.info(f"Statistics saved to file: {output_file}")
 
 
 def load_data(file_path, win):
-    """加载数据并截取需要的部分"""
+    """Load data and extract the required portion"""
     try:
         df_data = pd.read_csv(file_path, usecols=['src'])
-        df_data = df_data[:win * 50]  # 限制数据量避免内存溢出
-        logging.info(f"成功加载数据，数据行数：{len(df_data)}")
+        df_data = df_data[:win * 50]  # Limit data size to avoid memory overflow
+        logging.info(f"Data loaded successfully, number of rows: {len(df_data)}")
         return df_data['src']
     except Exception as e:
-        logging.error(f"加载数据时出错: {e}")
+        logging.error(f"Error loading data: {e}")
         raise
 
 
 def main(file_path, win, step_size):
-    """主函数，控制数据处理流"""
+    """Main function to control the data processing flow"""
     try:
-        # 加载数据
+        # Load data
         data = load_data(file_path, win)
 
-        # 创建基数估计器
+        # Create the cardinality estimator
         estimator = CardinalityEstimator(win, step_size)
 
-        # 分割数据
+        # Split the data into chunks
         chunks = estimator.split_dataframe(data)
 
-        # 并行处理
+        # Parallel processing
         results = estimator.parallel_processing(chunks)
 
-        # 保存结果
+        # Save the results
         estimator.save_results(results, file_path)
 
-        logging.info("基数统计完毕！")
+        logging.info("Cardinality estimation completed!")
     except Exception as e:
-        logging.error(f"程序执行过程中发生错误: {e}")
+        logging.error(f"Error during program execution: {e}")
 
 
 if __name__ == '__main__':
-    # 配置文件路径及参数
+    # Configuration of file path and parameters
     file_path = 'Data/mini-test/_4000004.csv'
-    win = 65536*4  # 窗口大小
-    step_size = int(0.5 * win)  # 步长设置为窗口的一半
+    win = 65536 * 4  # Window size
+    step_size = int(0.5 * win)  # Step size is set to half of the window size
 
-    # 调用主函数
+    # Call the main function
     main(file_path, win, step_size)

@@ -1,6 +1,6 @@
 ## TardySketch
 
-This is the source code of QSketch in ICDE2025.  
+This is the source code of TardySketch in ICDE2025.  
 
 ## Preparation
 

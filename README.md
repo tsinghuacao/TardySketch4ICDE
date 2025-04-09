@@ -1,6 +1,7 @@
 ## TardySketch
 
 This is the source code of TardySketch in ICDE2025.  
+accepted!
 
 ## Preparation
 
